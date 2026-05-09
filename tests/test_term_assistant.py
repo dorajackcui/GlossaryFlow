@@ -22,8 +22,8 @@ def write_demand(path: Path) -> None:
     sheet = workbook.active
     sheet.title = "需求"
     sheet.append(["source"])
-    sheet.append(["命运刻面·笼中梦"])
-    sheet.append(["夜息垂芒"])
+    sheet.append(["示例主干A·示例后缀A"])
+    sheet.append(["示例主干C"])
     workbook.save(path)
 
 
@@ -32,11 +32,11 @@ def write_tb(path: Path) -> None:
     stem_sheet = workbook.active
     stem_sheet.title = "主干术语表"
     stem_sheet.append(["source", "target"])
-    stem_sheet.append(["命运刻面", "Coupes du destin"])
-    stem_sheet.append(["夜息垂芒", "Nuit berçante"])
+    stem_sheet.append(["示例主干A", "Target A"])
+    stem_sheet.append(["示例主干C", "Target C"])
     suffix_sheet = workbook.create_sheet("后缀术语表")
     suffix_sheet.append(["source", "target"])
-    suffix_sheet.append(["·笼中梦", " : Rêve en cage"])
+    suffix_sheet.append(["·示例后缀A", " : Suffix Target A"])
     workbook.save(path)
 
 
@@ -81,9 +81,9 @@ class TermAssistantTests(unittest.TestCase):
                 read_rows(result.summary_terms, "汇总术语表"),
                 [
                     ("term_type", "source", "target", "status"),
-                    ("主干术语表", "命运刻面", None, "needs_translation"),
-                    ("主干术语表", "夜息垂芒", None, "needs_translation"),
-                    ("后缀术语表", "·笼中梦", None, "needs_translation"),
+                    ("主干术语表", "示例主干A", None, "needs_translation"),
+                    ("主干术语表", "示例主干C", None, "needs_translation"),
+                    ("后缀术语表", "·示例后缀A", None, "needs_translation"),
                 ],
             )
 
@@ -103,7 +103,7 @@ class TermAssistantTests(unittest.TestCase):
             self.assertTrue(result.prefilled_terms.exists())
             self.assertIn("选择 3", result.next_step)
             rows = read_rows(result.prefilled_terms, "主干术语表")
-            self.assertEqual(rows[1], ("命运刻面", "Coupes du destin", "matched"))
+            self.assertEqual(rows[1], ("示例主干A", "Target A", "matched"))
 
     def test_run_new_batch_creates_split_and_prefilled_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -121,7 +121,7 @@ class TermAssistantTests(unittest.TestCase):
             self.assertTrue(result.prefilled_terms.exists())
             self.assertIn("请打开", result.next_step)
             rows = read_rows(result.prefilled_terms, "主干术语表")
-            self.assertEqual(rows[1], ("命运刻面", "Coupes du destin", "matched"))
+            self.assertEqual(rows[1], ("示例主干A", "Target A", "matched"))
 
     def test_run_new_batch_defaults_outputs_next_to_demand_excel(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -172,7 +172,7 @@ class TermAssistantTests(unittest.TestCase):
 
             self.assertTrue(result.filled_demand.exists())
             rows = read_rows(result.filled_demand, "需求")
-            self.assertEqual(rows[1], ("命运刻面·笼中梦", "Coupes du destin : Rêve en cage"))
+            self.assertEqual(rows[1], ("示例主干A·示例后缀A", "Target A : Suffix Target A"))
 
     def test_run_update_previous_tb_updates_tb_in_place(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -186,11 +186,11 @@ class TermAssistantTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target"])
-            stem_sheet.append(["命运刻面", "Coupes du destin"])
-            stem_sheet.append(["灵魂洄游", "Errance des âmes"])
+            stem_sheet.append(["示例主干A", "Target A"])
+            stem_sheet.append(["示例主干B", "Target E"])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target"])
-            suffix_sheet.append(["·新梦", " : Nouveau rêve"])
+            suffix_sheet.append(["·示例后缀C", " : Suffix Target C"])
             workbook.save(translated)
 
             result = run_update_previous_tb(translated, tb, output_root)
@@ -198,8 +198,8 @@ class TermAssistantTests(unittest.TestCase):
             self.assertEqual(result.updated_tb, tb)
             self.assertEqual(result.updated_count, 2)
             self.assertIn("闭环完成", result.next_step)
-            self.assertIn(("灵魂洄游", "Errance des âmes"), read_rows(tb, "主干术语表"))
-            self.assertIn(("·新梦", " : Nouveau rêve"), read_rows(tb, "后缀术语表"))
+            self.assertIn(("示例主干B", "Target E"), read_rows(tb, "主干术语表"))
+            self.assertIn(("·示例后缀C", " : Suffix Target C"), read_rows(tb, "后缀术语表"))
 
 
 if __name__ == "__main__":

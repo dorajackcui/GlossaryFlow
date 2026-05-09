@@ -43,10 +43,10 @@ class TermWorkflowTests(unittest.TestCase):
                 "需求",
                 [
                     ["source"],
-                    ["命运刻面·笼中梦"],
-                    ["灵魂洄游·笼中梦"],
-                    ["夜息垂芒"],
-                    ["命运刻面·希望"],
+                    ["示例主干A·示例后缀A"],
+                    ["示例主干B·示例后缀A"],
+                    ["示例主干C"],
+                    ["示例主干A·示例后缀B"],
                 ],
             )
 
@@ -56,17 +56,17 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(output, "主干术语表"),
                 [
                     ("source", "target", "status"),
-                    ("命运刻面", None, "needs_translation"),
-                    ("灵魂洄游", None, "needs_translation"),
-                    ("夜息垂芒", None, "needs_translation"),
+                    ("示例主干A", None, "needs_translation"),
+                    ("示例主干B", None, "needs_translation"),
+                    ("示例主干C", None, "needs_translation"),
                 ],
             )
             self.assertEqual(
                 read_sheet(output, "后缀术语表"),
                 [
                     ("source", "target", "status"),
-                    ("·笼中梦", None, "needs_translation"),
-                    ("·希望", None, "needs_translation"),
+                    ("·示例后缀A", None, "needs_translation"),
+                    ("·示例后缀B", None, "needs_translation"),
                 ],
             )
 
@@ -79,8 +79,8 @@ class TermWorkflowTests(unittest.TestCase):
                 "需求",
                 [
                     ["source", "target"],
-                    ["命运刻面·笼中梦", "Coupes du destin : Rêve en cage"],
-                    ["夜息垂芒", ""],
+                    ["示例主干A·示例后缀A", "Target A : Suffix Target A"],
+                    ["示例主干C", ""],
                 ],
             )
 
@@ -90,15 +90,45 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(output, "主干术语表"),
                 [
                     ("source", "target", "status"),
-                    ("命运刻面", "Coupes du destin", "matched"),
-                    ("夜息垂芒", None, "needs_translation"),
+                    ("示例主干A", "Target A", "matched"),
+                    ("示例主干C", None, "needs_translation"),
                 ],
             )
             self.assertEqual(
                 read_sheet(output, "后缀术语表"),
                 [
                     ("source", "target", "status"),
-                    ("·笼中梦", " : Rêve en cage", "matched"),
+                    ("·示例后缀A", " : Suffix Target A", "matched"),
+                ],
+            )
+
+    def test_split_demand_workbook_splits_hyphen_source_and_target_suffixes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            demand = Path(tmp) / "demand.xlsx"
+            output = Path(tmp) / "batch_terms.xlsx"
+            write_rows(
+                demand,
+                "需求",
+                [
+                    ["source", "target"],
+                    ["示例主干-示例后缀", "Example stem-Example suffix"],
+                ],
+            )
+
+            split_demand_workbook(demand, output)
+
+            self.assertEqual(
+                read_sheet(output, "主干术语表"),
+                [
+                    ("source", "target", "status"),
+                    ("示例主干", "Example stem", "matched"),
+                ],
+            )
+            self.assertEqual(
+                read_sheet(output, "后缀术语表"),
+                [
+                    ("source", "target", "status"),
+                    ("-示例后缀", "-Example suffix", "matched"),
                 ],
             )
 
@@ -111,9 +141,9 @@ class TermWorkflowTests(unittest.TestCase):
                 "需求",
                 [
                     ["source", "target"],
-                    ["命运刻面·笼中梦", ""],
-                    ["命运刻面·笼中梦", "Coupes du destin : Rêve en cage"],
-                    ["命运刻面·笼中梦", "Destin coupe : Songe captif"],
+                    ["示例主干A·示例后缀A", ""],
+                    ["示例主干A·示例后缀A", "Target A : Suffix Target A"],
+                    ["示例主干A·示例后缀A", "Target B : Suffix Target B"],
                 ],
             )
 
@@ -123,14 +153,14 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(output, "主干术语表"),
                 [
                     ("source", "target", "status"),
-                    ("命运刻面", "Coupes du destin", "matched"),
+                    ("示例主干A", "Target A", "matched"),
                 ],
             )
             self.assertEqual(
                 read_sheet(output, "后缀术语表"),
                 [
                     ("source", "target", "status"),
-                    ("·笼中梦", " : Rêve en cage", "matched"),
+                    ("·示例后缀A", " : Suffix Target A", "matched"),
                 ],
             )
 
@@ -144,8 +174,8 @@ class TermWorkflowTests(unittest.TestCase):
                 "需求",
                 [
                     ["source", "target"],
-                    ["命运刻面·笼中梦", "Coupes du destin : Rêve en cage"],
-                    ["夜息垂芒", ""],
+                    ["示例主干A·示例后缀A", "Target A : Suffix Target A"],
+                    ["示例主干C", ""],
                 ],
             )
 
@@ -155,9 +185,9 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(summary_output, "汇总术语表"),
                 [
                     ("term_type", "source", "target", "status"),
-                    ("主干术语表", "命运刻面", "Coupes du destin", "matched"),
-                    ("主干术语表", "夜息垂芒", None, "needs_translation"),
-                    ("后缀术语表", "·笼中梦", " : Rêve en cage", "matched"),
+                    ("主干术语表", "示例主干A", "Target A", "matched"),
+                    ("主干术语表", "示例主干C", None, "needs_translation"),
+                    ("后缀术语表", "·示例后缀A", " : Suffix Target A", "matched"),
                 ],
             )
 
@@ -172,8 +202,8 @@ class TermWorkflowTests(unittest.TestCase):
                 "汇总术语表",
                 [
                     ["term_type", "source", "target", "status"],
-                    ["主干术语表", "命运刻面", None, "needs_translation"],
-                    ["后缀术语表", "·笼中梦", None, "needs_translation"],
+                    ["主干术语表", "示例主干A", None, "needs_translation"],
+                    ["后缀术语表", "·示例后缀A", None, "needs_translation"],
                 ],
             )
 
@@ -181,10 +211,10 @@ class TermWorkflowTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target"])
-            stem_sheet.append(["命运刻面", "Coupes du destin"])
+            stem_sheet.append(["示例主干A", "Target A"])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target"])
-            suffix_sheet.append(["·笼中梦", " : Rêve en cage"])
+            suffix_sheet.append(["·示例后缀A", " : Suffix Target A"])
             workbook.save(previous)
 
             prefill_terms_workbook(batch, previous, output)
@@ -193,14 +223,14 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(output, "主干术语表"),
                 [
                     ("source", "target", "status"),
-                    ("命运刻面", "Coupes du destin", "matched"),
+                    ("示例主干A", "Target A", "matched"),
                 ],
             )
             self.assertEqual(
                 read_sheet(output, "后缀术语表"),
                 [
                     ("source", "target", "status"),
-                    ("·笼中梦", " : Rêve en cage", "matched"),
+                    ("·示例后缀A", " : Suffix Target A", "matched"),
                 ],
             )
 
@@ -215,9 +245,9 @@ class TermWorkflowTests(unittest.TestCase):
                 "汇总术语表",
                 [
                     ["term_type", "source", "target", "status", "issue_type", "issue_detail"],
-                    ["主干术语表", "命运刻面", "Coupes du destin", "matched", "old_issue", "old detail"],
-                    ["主干术语表", "命运刻面", "Destin coupe", "matched", "old_issue", "old detail"],
-                    ["主干术语表", "夜息垂芒", "Nuit berçante", "matched", "old_issue", "old detail"],
+                    ["主干术语表", "示例主干A", "Target A", "matched", "old_issue", "old detail"],
+                    ["主干术语表", "示例主干A", "Target B", "matched", "old_issue", "old detail"],
+                    ["主干术语表", "示例主干C", "Target C", "matched", "old_issue", "old detail"],
                 ],
             )
             write_rows(
@@ -225,8 +255,8 @@ class TermWorkflowTests(unittest.TestCase):
                 "汇总术语表",
                 [
                     ["term_type", "source", "target"],
-                    ["主干术语表", "命运刻面", "Ancien destin"],
-                    ["主干术语表", "另一个刻面", "Coupes du destin"],
+                    ["主干术语表", "示例主干A", "Previous Target A"],
+                    ["主干术语表", "示例主干D", "Target A"],
                 ],
             )
 
@@ -242,15 +272,15 @@ class TermWorkflowTests(unittest.TestCase):
             self.assertEqual(report_rows[1][4], "source_conflict; target_conflict")
             self.assertIn("本批次内重复", report_rows[1][5])
             self.assertIn("与过往术语表冲突", report_rows[1][5])
-            self.assertIn("过往 target：Ancien destin", report_rows[1][5])
-            self.assertIn("本批次 target：Coupes du destin", report_rows[1][5])
-            self.assertIn("Coupes du destin", report_rows[1][5])
-            self.assertIn("Destin coupe", report_rows[1][5])
-            self.assertIn("另一个刻面", report_rows[1][5])
+            self.assertIn("过往 target：Previous Target A", report_rows[1][5])
+            self.assertIn("本批次 target：Target A", report_rows[1][5])
+            self.assertIn("Target A", report_rows[1][5])
+            self.assertIn("Target B", report_rows[1][5])
+            self.assertIn("示例主干D", report_rows[1][5])
             self.assertEqual(report_rows[2][4], "source_conflict")
             self.assertIn("本批次内重复", report_rows[2][5])
             self.assertIn("与过往术语表冲突", report_rows[2][5])
-            self.assertIn("本批次 target：Destin coupe", report_rows[2][5])
+            self.assertIn("本批次 target：Target B", report_rows[2][5])
             self.assertIsNone(report_rows[3][4])
             self.assertIsNone(report_rows[3][5])
 
@@ -264,8 +294,8 @@ class TermWorkflowTests(unittest.TestCase):
                 "主干术语表",
                 [
                     ["source", "target", "issue_type", "issue_detail"],
-                    ["命运刻面", None, "old_issue", "old detail"],
-                    ["夜息垂芒", "Nuit berçante", "old_issue", "old detail"],
+                    ["示例主干A", None, "old_issue", "old detail"],
+                    ["示例主干C", "Target C", "old_issue", "old detail"],
                 ],
             )
             workbook = load_workbook(batch)
@@ -297,7 +327,7 @@ class TermWorkflowTests(unittest.TestCase):
                 "主干术语表",
                 [
                     ["source", "target"],
-                    ["命运刻面", "Coupes du destin"],
+                    ["示例主干A", "Target A"],
                 ],
             )
             workbook = load_workbook(batch)
@@ -344,8 +374,8 @@ class TermWorkflowTests(unittest.TestCase):
                 "需求",
                 [
                     ["source"],
-                    ["命运刻面·笼中梦"],
-                    ["夜息垂芒"],
+                    ["示例主干A·示例后缀A"],
+                    ["示例主干C"],
                 ],
             )
             write_rows(
@@ -353,9 +383,9 @@ class TermWorkflowTests(unittest.TestCase):
                 "汇总术语表",
                 [
                     ["term_type", "source", "target", "status"],
-                    ["主干术语表", "命运刻面", "Coupes du destin", "matched"],
-                    ["后缀术语表", "·笼中梦", " : Rêve en cage", "matched"],
-                    ["主干术语表", "夜息垂芒", "Nuit berçante", "matched"],
+                    ["主干术语表", "示例主干A", "Target A", "matched"],
+                    ["后缀术语表", "·示例后缀A", " : Suffix Target A", "matched"],
+                    ["主干术语表", "示例主干C", "Target C", "matched"],
                 ],
             )
 
@@ -365,8 +395,8 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(output, "需求"),
                 [
                     ("source", "target"),
-                    ("命运刻面·笼中梦", "Coupes du destin : Rêve en cage"),
-                    ("夜息垂芒", "Nuit berçante"),
+                    ("示例主干A·示例后缀A", "Target A : Suffix Target A"),
+                    ("示例主干C", "Target C"),
                 ],
             )
 
@@ -379,20 +409,20 @@ class TermWorkflowTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target", "status", "issue_type", "issue_detail"])
-            stem_sheet.append(["命运刻面", "Coupes du destin", "matched", None, None])
-            stem_sheet.append(["夜息垂芒", "Nuit berçante", "matched", None, None])
+            stem_sheet.append(["示例主干A", "Target A", "matched", None, None])
+            stem_sheet.append(["示例主干C", "Target C", "matched", None, None])
             stem_sheet.append(["空目标", None, "needs_translation", None, None])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target", "status"])
-            suffix_sheet.append(["·笼中梦", " : Rêve en cage", "matched"])
+            suffix_sheet.append(["·示例后缀A", " : Suffix Target A", "matched"])
             workbook.save(translated)
 
             workbook = Workbook()
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target"])
-            stem_sheet.append(["命运刻面", "Coupes du destin"])
-            stem_sheet.append(["夜息垂芒", None])
+            stem_sheet.append(["示例主干A", "Target A"])
+            stem_sheet.append(["示例主干C", None])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target"])
             workbook.save(previous)
@@ -404,15 +434,15 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(previous, "主干术语表"),
                 [
                     ("source", "target"),
-                    ("命运刻面", "Coupes du destin"),
-                    ("夜息垂芒", "Nuit berçante"),
+                    ("示例主干A", "Target A"),
+                    ("示例主干C", "Target C"),
                 ],
             )
             self.assertEqual(
                 read_sheet(previous, "后缀术语表"),
                 [
                     ("source", "target"),
-                    ("·笼中梦", " : Rêve en cage"),
+                    ("·示例后缀A", " : Suffix Target A"),
                 ],
             )
 
@@ -426,9 +456,9 @@ class TermWorkflowTests(unittest.TestCase):
                 "汇总术语表",
                 [
                     ["term_type", "source", "target", "status"],
-                    ["主干术语表", "命运刻面", "Coupes du destin", "matched"],
-                    ["主干术语表", "夜息垂芒", "Nuit berçante", "matched"],
-                    ["后缀术语表", "·笼中梦", " : Rêve en cage", "matched"],
+                    ["主干术语表", "示例主干A", "Target A", "matched"],
+                    ["主干术语表", "示例主干C", "Target C", "matched"],
+                    ["后缀术语表", "·示例后缀A", " : Suffix Target A", "matched"],
                 ],
             )
             write_rows(
@@ -436,8 +466,8 @@ class TermWorkflowTests(unittest.TestCase):
                 "汇总术语表",
                 [
                     ["term_type", "source", "target"],
-                    ["主干术语表", "命运刻面", "Coupes du destin"],
-                    ["主干术语表", "夜息垂芒", None],
+                    ["主干术语表", "示例主干A", "Target A"],
+                    ["主干术语表", "示例主干C", None],
                 ],
             )
 
@@ -448,9 +478,9 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(previous, "汇总术语表"),
                 [
                     ("term_type", "source", "target"),
-                    ("主干术语表", "命运刻面", "Coupes du destin"),
-                    ("主干术语表", "夜息垂芒", "Nuit berçante"),
-                    ("后缀术语表", "·笼中梦", " : Rêve en cage"),
+                    ("主干术语表", "示例主干A", "Target A"),
+                    ("主干术语表", "示例主干C", "Target C"),
+                    ("后缀术语表", "·示例后缀A", " : Suffix Target A"),
                 ],
             )
 
@@ -463,8 +493,8 @@ class TermWorkflowTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target"])
-            stem_sheet.append(["命运刻面", "Coupes du destin"])
-            stem_sheet.append(["夜息垂芒", "Nuit berçante"])
+            stem_sheet.append(["示例主干A", "Target A"])
+            stem_sheet.append(["示例主干C", "Target C"])
             workbook.create_sheet("后缀术语表").append(["source", "target"])
             workbook.save(translated)
 
@@ -472,7 +502,7 @@ class TermWorkflowTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target"])
-            stem_sheet.append(["命运刻面", "Ancien destin"])
+            stem_sheet.append(["示例主干A", "Previous Target A"])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target"])
             workbook.save(previous)
@@ -484,7 +514,7 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(previous, "主干术语表"),
                 [
                     ("source", "target"),
-                    ("命运刻面", "Ancien destin"),
+                    ("示例主干A", "Previous Target A"),
                 ],
             )
 
@@ -498,21 +528,21 @@ class TermWorkflowTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target", "status"])
-            stem_sheet.append(["命运刻面", None, "needs_translation"])
-            stem_sheet.append(["夜息垂芒", None, "needs_translation"])
+            stem_sheet.append(["示例主干A", None, "needs_translation"])
+            stem_sheet.append(["示例主干C", None, "needs_translation"])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target", "status"])
-            suffix_sheet.append(["·笼中梦", None, "needs_translation"])
+            suffix_sheet.append(["·示例后缀A", None, "needs_translation"])
             workbook.save(batch)
 
             workbook = Workbook()
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target"])
-            stem_sheet.append(["命运刻面", "Coupes du destin"])
+            stem_sheet.append(["示例主干A", "Target A"])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target"])
-            suffix_sheet.append(["·笼中梦", " : Rêve en cage"])
+            suffix_sheet.append(["·示例后缀A", " : Suffix Target A"])
             workbook.save(previous)
 
             prefill_terms_workbook(batch, previous, output)
@@ -521,15 +551,15 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(output, "主干术语表"),
                 [
                     ("source", "target", "status"),
-                    ("命运刻面", "Coupes du destin", "matched"),
-                    ("夜息垂芒", None, "needs_translation"),
+                    ("示例主干A", "Target A", "matched"),
+                    ("示例主干C", None, "needs_translation"),
                 ],
             )
             self.assertEqual(
                 read_sheet(output, "后缀术语表"),
                 [
                     ("source", "target", "status"),
-                    ("·笼中梦", " : Rêve en cage", "matched"),
+                    ("·示例后缀A", " : Suffix Target A", "matched"),
                 ],
             )
 
@@ -537,24 +567,24 @@ class TermWorkflowTests(unittest.TestCase):
         conflicts = check_conflicts(
             {
                 "主干术语表": {
-                    "命运刻面": "Coupes du destin",
-                    "另一个刻面": "Coupes du destin",
-                    "夜息垂芒": "Nuit calme",
+                    "示例主干A": "Target A",
+                    "示例主干D": "Target A",
+                    "示例主干C": "Target D",
                 },
             },
             {
                 "主干术语表": {
-                    "命运刻面": "Destin coupe",
-                    "灵魂洄游": "Âmes errantes",
+                    "示例主干A": "Target B",
+                    "示例主干B": "Target F",
                 },
             },
         )
 
         self.assertEqual(len(conflicts), 2)
         self.assertEqual(conflicts[0]["issue_type"], "source_conflict")
-        self.assertEqual(conflicts[0]["source"], "命运刻面")
+        self.assertEqual(conflicts[0]["source"], "示例主干A")
         self.assertEqual(conflicts[1]["issue_type"], "target_conflict")
-        self.assertEqual(conflicts[1]["target"], "Coupes du destin")
+        self.assertEqual(conflicts[1]["target"], "Target A")
 
     def test_check_terms_workbook_reports_duplicate_rows_before_deduping(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -566,10 +596,10 @@ class TermWorkflowTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target", "issue_type", "issue_detail"])
-            stem_sheet.append(["命运刻面", "Coupes du destin", "old_issue", "old detail"])
-            stem_sheet.append(["命运刻面", "Destin coupe", "old_issue", "old detail"])
-            stem_sheet.append(["另一个刻面", "Coupes du destin", "old_issue", "old detail"])
-            stem_sheet.append(["夜息垂芒", "Nuit berçante", "old_issue", "old detail"])
+            stem_sheet.append(["示例主干A", "Target A", "old_issue", "old detail"])
+            stem_sheet.append(["示例主干A", "Target B", "old_issue", "old detail"])
+            stem_sheet.append(["示例主干D", "Target A", "old_issue", "old detail"])
+            stem_sheet.append(["示例主干C", "Target C", "old_issue", "old detail"])
             workbook.create_sheet("后缀术语表").append(["source", "target"])
             workbook.save(batch)
 
@@ -588,14 +618,14 @@ class TermWorkflowTests(unittest.TestCase):
             self.assertEqual(report_rows[1][2], "source_conflict; target_conflict")
             self.assertIn("本批次内重复", report_rows[1][3])
             self.assertNotIn("与过往术语表冲突", report_rows[1][3])
-            self.assertIn("Destin coupe", report_rows[1][3])
-            self.assertIn("另一个刻面", report_rows[1][3])
+            self.assertIn("Target B", report_rows[1][3])
+            self.assertIn("示例主干D", report_rows[1][3])
             self.assertEqual(report_rows[2][2], "source_conflict")
             self.assertIn("本批次内重复", report_rows[2][3])
             self.assertNotIn("与过往术语表冲突", report_rows[2][3])
-            self.assertIn("Coupes du destin", report_rows[2][3])
+            self.assertIn("Target A", report_rows[2][3])
             self.assertEqual(report_rows[3][2], "target_conflict")
-            self.assertIn("命运刻面", report_rows[3][3])
+            self.assertIn("示例主干A", report_rows[3][3])
             self.assertIsNone(report_rows[4][2])
             self.assertIsNone(report_rows[4][3])
 
@@ -610,9 +640,9 @@ class TermWorkflowTests(unittest.TestCase):
                 "需求",
                 [
                     ["source"],
-                    ["命运刻面·笼中梦"],
-                    ["夜息垂芒"],
-                    ["未知·笼中梦"],
+                    ["示例主干A·示例后缀A"],
+                    ["示例主干C"],
+                    ["未知·示例后缀A"],
                 ],
             )
 
@@ -620,11 +650,11 @@ class TermWorkflowTests(unittest.TestCase):
             stem_sheet = workbook.active
             stem_sheet.title = "主干术语表"
             stem_sheet.append(["source", "target"])
-            stem_sheet.append(["命运刻面", "Coupes du destin"])
-            stem_sheet.append(["夜息垂芒", "Nuit berçante"])
+            stem_sheet.append(["示例主干A", "Target A"])
+            stem_sheet.append(["示例主干C", "Target C"])
             suffix_sheet = workbook.create_sheet("后缀术语表")
             suffix_sheet.append(["source", "target"])
-            suffix_sheet.append(["·笼中梦", " : Rêve en cage"])
+            suffix_sheet.append(["·示例后缀A", " : Suffix Target A"])
             workbook.save(terms)
 
             fill_demand_workbook(demand, terms, output)
@@ -633,9 +663,44 @@ class TermWorkflowTests(unittest.TestCase):
                 read_sheet(output, "需求"),
                 [
                     ("source", "target"),
-                    ("命运刻面·笼中梦", "Coupes du destin : Rêve en cage"),
-                    ("夜息垂芒", "Nuit berçante"),
-                    ("未知·笼中梦", None),
+                    ("示例主干A·示例后缀A", "Target A : Suffix Target A"),
+                    ("示例主干C", "Target C"),
+                    ("未知·示例后缀A", None),
+                ],
+            )
+
+    def test_fill_demand_workbook_combines_hyphen_suffix_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            demand = Path(tmp) / "demand.xlsx"
+            terms = Path(tmp) / "translated_terms.xlsx"
+            output = Path(tmp) / "filled.xlsx"
+
+            write_rows(
+                demand,
+                "需求",
+                [
+                    ["source"],
+                    ["示例主干-示例后缀"],
+                ],
+            )
+
+            workbook = Workbook()
+            stem_sheet = workbook.active
+            stem_sheet.title = "主干术语表"
+            stem_sheet.append(["source", "target"])
+            stem_sheet.append(["示例主干", "Example stem"])
+            suffix_sheet = workbook.create_sheet("后缀术语表")
+            suffix_sheet.append(["source", "target"])
+            suffix_sheet.append(["-示例后缀", "-Example suffix"])
+            workbook.save(terms)
+
+            fill_demand_workbook(demand, terms, output)
+
+            self.assertEqual(
+                read_sheet(output, "需求"),
+                [
+                    ("source", "target"),
+                    ("示例主干-示例后缀", "Example stem-Example suffix"),
                 ],
             )
 

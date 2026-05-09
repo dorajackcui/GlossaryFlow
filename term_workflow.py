@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,7 +15,9 @@ STEM_SHEET = "主干术语表"
 SUFFIX_SHEET = "后缀术语表"
 SUMMARY_SHEET = "汇总术语表"
 SOURCE_SUFFIX_MARKER = "·"
-TARGET_SUFFIX_RE = re.compile(r"^(?P<stem>.*?)(?P<suffix>\s*[:：].*)$")
+SOURCE_SUFFIX_MARKERS = (SOURCE_SUFFIX_MARKER, "-")
+TARGET_SUFFIX_MARKERS = (":", "：")
+TARGET_HYPHEN_SUFFIX_MARKER = "-"
 TERM_SHEETS = (STEM_SHEET, SUFFIX_SHEET)
 
 
@@ -52,22 +53,44 @@ def find_header_column(header: list[str], names: set[str]) -> int | None:
 
 
 def split_source(value: str) -> tuple[str, str]:
-    if SOURCE_SUFFIX_MARKER not in value:
+    marker_positions = [
+        (value.index(marker), marker) for marker in SOURCE_SUFFIX_MARKERS if marker in value
+    ]
+    if not marker_positions:
         return value.strip(), ""
 
-    stem, suffix = value.split(SOURCE_SUFFIX_MARKER, 1)
-    return stem.strip(), f"{SOURCE_SUFFIX_MARKER}{suffix.strip()}"
+    marker_index, marker = min(marker_positions, key=lambda item: item[0])
+    stem = value[:marker_index]
+    suffix = value[marker_index + len(marker) :]
+    return stem.strip(), f"{marker}{suffix.strip()}"
 
 
-def split_target(value: str) -> tuple[str, str]:
+def find_target_suffix_start(value: str, allow_hyphen_suffix: bool) -> int | None:
+    marker_positions = [
+        value.index(marker) for marker in TARGET_SUFFIX_MARKERS if marker in value
+    ]
+    if marker_positions:
+        marker_index = min(marker_positions)
+    elif allow_hyphen_suffix and TARGET_HYPHEN_SUFFIX_MARKER in value:
+        marker_index = value.index(TARGET_HYPHEN_SUFFIX_MARKER)
+    else:
+        return None
+
+    suffix_start = marker_index
+    while suffix_start > 0 and value[suffix_start - 1].isspace():
+        suffix_start -= 1
+    return suffix_start
+
+
+def split_target(value: str, allow_hyphen_suffix: bool = False) -> tuple[str, str]:
     if not value:
         return "", ""
 
-    match = TARGET_SUFFIX_RE.match(value)
-    if not match:
+    suffix_start = find_target_suffix_start(value, allow_hyphen_suffix)
+    if suffix_start is None:
         return value.strip(), ""
 
-    return match.group("stem").strip(), match.group("suffix")
+    return value[:suffix_start].strip(), value[suffix_start:]
 
 
 def first_value_wins_add(glossary: dict[str, str], source: str, target: str = "") -> None:
@@ -152,7 +175,9 @@ def split_terms_from_rows(rows: list[tuple[str, str]]) -> tuple[dict[str, str], 
 
     for source, target in rows:
         source_stem, source_suffix = split_source(source)
-        target_stem, target_suffix = split_target(target)
+        target_stem, target_suffix = split_target(
+            target, allow_hyphen_suffix=source_suffix.startswith(TARGET_HYPHEN_SUFFIX_MARKER)
+        )
 
         first_non_empty_value_wins_add(stems, source_stem, target_stem)
         if source_suffix:
@@ -727,8 +752,8 @@ def write_check_issues(batch_path: Path, row_issues: dict[tuple[str, int], tuple
 
             for row_index in range(2, sheet.max_row + 1):
                 issue_type, issue_detail = row_issues.get((sheet_name, row_index), ("", ""))
-                sheet.cell(row=row_index, column=issue_type_col, value=issue_type or None)
-                sheet.cell(row=row_index, column=issue_detail_col, value=issue_detail or None)
+                sheet.cell(row=row_index, column=issue_type_col).value = issue_type or None
+                sheet.cell(row=row_index, column=issue_detail_col).value = issue_detail or None
 
         workbook.save(batch_path)
     finally:

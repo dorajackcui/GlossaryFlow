@@ -72,6 +72,7 @@ python term_assistant.py
 
 拆分时会自动识别需求 Excel 里的 `target`：
 
+- `source` 支持用 `·` 或 `-` 拆分主干/后缀，后缀术语表会保留分隔符，例如 `示例主干-示例后缀` 会拆成 `示例主干` 和 `-示例后缀`。
 - 如果某一行 `source` 和 `target` 都有内容，会拆成已经配对的主干/后缀术语。
 - 如果某一行只有 `source`，也会生成术语，但 `target` 留空，后面再翻译。
 - 如果同一个术语重复出现，会优先保留第一个非空 `target`。
@@ -236,8 +237,9 @@ python term_assistant.py
 
 | source | target |
 | --- | --- |
-| 命运刻面·笼中梦 | Coupes du destin : Rêve en cage |
-| 夜息垂芒 | |
+| 示例主干A·示例后缀A | Target A : Suffix Target A |
+| 示例主干-示例后缀 | Example stem-Example suffix |
+| 示例主干C | |
 
 如果有 `target`，第一步会把它一起拆进术语表；如果没有或为空，第一步会生成待翻译术语。回填时如果需求 Excel 没有 `target` 列，脚本会自动新增。
 
@@ -252,15 +254,16 @@ python term_assistant.py
 
 | source | target |
 | --- | --- |
-| 命运刻面 | Coupes du destin |
-| ·笼中梦 |  : Rêve en cage |
+| 示例主干A | Target A |
+| ·示例后缀A |  : Suffix Target A |
+| -示例后缀 | -Example suffix |
 
 也可以使用单 sheet 汇总格式，sheet 名为 `汇总术语表`：
 
 | term_type | source | target |
 | --- | --- | --- |
-| 主干术语表 | 命运刻面 | Coupes du destin |
-| 后缀术语表 | ·笼中梦 |  : Rêve en cage |
+| 主干术语表 | 示例主干A | Target A |
+| 后缀术语表 | ·示例后缀A |  : Suffix Target A |
 
 ## 高级用法：直接命令行
 
